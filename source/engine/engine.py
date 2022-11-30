@@ -6,6 +6,7 @@ from .timer import Timer
 from .window import Window
 
 class Engine:
+    FRAME_RATE = 24
 
     def __init__(self):
         self.scenes = {}
@@ -64,7 +65,7 @@ class Engine:
 
             # Create a timer; used to refresh window every 1/8s
             timer = Timer()
-            timer_period = 1 / 8
+            timer_period = 1 / Engine.FRAME_RATE
             timer.start(timer_period)
 
             # Load root scene

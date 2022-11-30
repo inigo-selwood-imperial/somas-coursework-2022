@@ -9,8 +9,12 @@ class Log:
         for _ in range(2):
             root = os.path.dirname(root)
         
+        log_base = os.path.join(root, "logs")
+        if not os.path.exists(log_base):
+            os.mkdir(log_base)
+        
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-        path = os.path.join(root, f"log-{timestamp}.txt")
+        path = os.path.join(log_base, f"log-{timestamp}.txt")
 
         self.file = None
         self.file = open(path, "w")
