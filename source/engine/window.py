@@ -80,17 +80,22 @@ class Window:
         
         return Window._pairs[hash]
     
-    def draw_box(self, origin: tuple, size: tuple):
+    def draw_box(self, size: tuple, origin: tuple = (0, 0)):
         x, y = origin
         width, height = size
 
-        border_top = "─" * (width - 2)
+        border_horizontal = "─" * (width - 2)
         self.print(border_horizontal, (x + 1, y))
-        self.print(border_horizontal, (x + 1, y + height))
+        self.print(border_horizontal, (x + 1, y + height - 1))
 
-        for row in range(1, self.height - 2):
+        for row in range(1, height - 1):
             self.print("│", (x, y + row))
-            self.print("│", (x, y + row))
+            self.print("│", (x + width - 1, y + row))
+        
+        self.print("╭", (x, y))
+        self.print("╰", (x, y + height - 1))
+        self.print("╮", (x + width - 1, y))
+        self.print("╯", (x + width - 1, y + height - 1))
 
     def clear(self):
         self._handle.clear()
