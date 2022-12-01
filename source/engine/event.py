@@ -1,3 +1,6 @@
+import curses
+
+
 class Event:
     
     def __init__(self, type_name: str):
@@ -8,11 +11,12 @@ class KeyEvent(Event):
 
     def __init__(self, scancode: int):
         super().__init__("key")
+
         self.scancode = scancode
-        self.keycode = keycode
+        self.keycode = curses.keyname(scancode)
     
     def __str__(self) -> str:
-        return f"key pressed: {self.keycode}"
+        return f"key pressed: {self.keycode.decode('utf-8')} ({self.scancode})"
 
 
 class QuitEvent(Event):

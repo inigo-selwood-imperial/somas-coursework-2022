@@ -39,3 +39,8 @@ def get_log_file():
 def debug(value: any):
     timestamp = datetime.datetime.now().strftime("%H:%M:%S")
     get_log_file().write(f"{timestamp} (DEBUG) {value}\n")
+
+
+def event(value: any):
+    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+    get_log_file().write(f"{timestamp} (EVENT) {value}\n")

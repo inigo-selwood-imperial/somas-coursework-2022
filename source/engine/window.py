@@ -16,6 +16,7 @@ class Window:
     def __enter__(self):
         """ Create a curses context for the window """
 
+        log_debug("initializing curses")
         self._handle = curses.initscr()
 
         # Turn off key echo, make input immediate, and disable cursor
@@ -43,11 +44,13 @@ class Window:
         self._size = self.get_size()
         self._last_ticks = time.time()
 
-        log_debug("initialised curses")
+        self.updates_available = False
+
         return self
 
     def __exit__(self, type, value, traceback):
         """ Break down the curses context """
+        log_debug("quitting curses")
 
         # Re-enable input buffering and turn off extended key sets
         self._handle.nodelay(False)
@@ -59,7 +62,6 @@ class Window:
         curses.echo()
 
         curses.endwin()
-        log_debug("exited curses")
     
     @staticmethod
     def _get_colour_pair(foreground: int, background: int) -> int:
@@ -113,6 +115,8 @@ class Window:
             self._handle.addstr(y, x, f"{value}", attributes)
         else:
             self._handle.addstr(f"{value}", attributes)
+        
+        self.updates_available = True
 
     def poll(self, _blocking: bool = False) -> str | None:
         """ Poll the window for events """
@@ -142,9 +146,7 @@ class Window:
         
         # Scan for new key inputs
         try:
-            scancode = self._handle.getch()
-            keycode = curses.keyname(scancode)
-            return KeyEvent(scancode, keycode)
+            return KeyEvent(self._handle.getch())
         except:
             pass
     
@@ -155,3 +157,4 @@ class Window:
         """ Updates the screen """
         
         self._handle.refresh()
+        self.updates_available = False

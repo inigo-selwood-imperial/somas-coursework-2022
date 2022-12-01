@@ -1,10 +1,13 @@
-from engine import Scene, Window
+from engine import Node, Window
+from components import Menu
 
 
-class MainMenu(Scene):
-
-    def __init__(self):
-        pass
+class MainMenu(Node):
     
-    def draw(self, window: Window):
-        window.print("hello world")
+    def enter(self):
+        menu = self.add_child(Menu, "menu")
+        menu.options = [
+            "play",
+            "settings",
+            "quit",
+        ]

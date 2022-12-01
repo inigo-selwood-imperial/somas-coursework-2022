@@ -1,10 +1,10 @@
 import time
 
 from .event import Event
-from .scene import Scene
+from .log import debug as log_debug, event as log_event
+from .node import Node
 from .timer import Timer
 from .window import Window
-from .log import debug as log_debug
 
 
 class Engine:
@@ -12,7 +12,6 @@ class Engine:
     def __init__(self):
         self._scenes = {}
         self._scene = None
-        self._scene_name = None
 
         self._running = False
 
@@ -26,30 +25,29 @@ class Engine:
         
         # Quit old scene, if applicable
         if self._scene:
-            self._scene.exit()
+            log_debug(f"quitting scene '{self._scene.name}'")
+            self._scene._exit()
             self._scene = None
-            log_debug(f"quit scene '{self._scene_name}'")
         
         # Load new scene
-        self._scene = self._scenes[name]()
-        self._scene_name = name
+        log_debug(f"loading scene '{name}'")
+        self._scene = self._scenes[name](name)
         self._scene.enter()
-        log_debug(f"loaded scene '{name}'")
     
     def quit(self):
 
         # Quit current scene, if applicable
         if self._scene:
-            self._scene.exit()
+            log_debug(f"quitting scene '{self._scene.name}'")
+            self._scene._exit()
             self._scene = None
-            log_debug(f"quit scene '{self._scene_name}'")
         
         self._running = False
 
     def start(self, arguments: list, root: str):
 
         timer = Timer()
-        frame_period = 1 / 16
+        frame_period = 1 / 24
         timer.start(frame_period)
 
         with Window() as self.window:
@@ -61,11 +59,13 @@ class Engine:
             while self._running:
                 
                 self.window.clear()
-                self._scene.draw(self.window)
-                self.window.update()
+                self._scene._draw(self.window)
+
+                if self.window.updates_available:
+                    self.window.update()
 
                 while event := self.window.poll():
-                    log_debug(f"event: {event}")
+                    log_event(event)
                     if event.type == "quit":
                         self.quit()
                         break
@@ -75,9 +75,8 @@ class Engine:
                 if not timer.finished():
                     time.sleep(timer.delta())
                     timer.start(frame_period)
-
     
-    def register(self, scene_type: Scene, name: str):
+    def register(self, scene_type: Node, name: str):
         if name in self._scenes:
             raise Exception(f"scene '{name}' already registered")
 
