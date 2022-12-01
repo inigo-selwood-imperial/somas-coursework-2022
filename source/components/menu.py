@@ -5,12 +5,18 @@ from engine import Node, Event, Window
 
 class Menu(Node):
 
-    def __init__(self, name: str):
-        super().__init__(name)
+    def __init__(self, name: str, engine):
+        super().__init__(name, engine)
 
         self.options = []
         self.index = 0
         self.focused = True
+        self.width = 0
+        self.title = None
+    
+    def add_option(self, text: str):
+        self.options.append(text)
+        self.width = max(self.width, len(text))
     
     def enter(self):
         self.register("selected")
@@ -28,6 +34,11 @@ class Menu(Node):
     def draw(self, window: Window):
         for index in range(len(self.options)):
             option = self.options[index]
-            window.print(option, (2, index))
-        
-        window.print(">", (0, self.index))
+            padding = " " * (self.width - len(option))
+            highlight = index == self.index
+
+            window.print(f" {option}{padding} ", 
+                    (2, index + 1), 
+                    highlight=highlight)
+            
+            window.draw_box((self.width + 6, len(self.options) + 2))

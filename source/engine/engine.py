@@ -31,7 +31,7 @@ class Engine:
         
         # Load new scene
         log_debug(f"loading scene '{name}'")
-        self._scene = self._scenes[name](name)
+        self._scene = self._scenes[name](name, self)
         self._scene.enter()
     
     def quit(self):

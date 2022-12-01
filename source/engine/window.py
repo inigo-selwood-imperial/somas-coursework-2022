@@ -88,6 +88,24 @@ class Window:
     def clear(self):
         """ Clears the window """
         self._handle.clear()
+    
+    def draw_box(self, size: tuple, origin: tuple = (0, 0)):
+        width, height = size
+        x, y = origin
+
+        border_horizontal = "─" * (width - 2)
+        self.print(border_horizontal, (x + 1, y))
+        self.print(border_horizontal, (x + 1, y + height - 1))
+
+        for row in range(1, height - 1):
+            self.print("│", (x, y + row))
+            self.print("│", (x + width - 1, y + row))
+        
+        self.print("╭", (x, y))
+        self.print("╰", (x, y + height - 1))
+        self.print("╮", (x + width - 1, y))
+        self.print("╯", (x + width - 1, y + height - 1))
+
 
     def get_size(self) -> tuple:
         """ Gets the size of the terminal """
@@ -99,13 +117,17 @@ class Window:
             value: any, 
             position: tuple = None, 
             foreground: int = -1, 
-            background: int = -1):
+            background: int = -1,
+            highlight: bool = False):
         """ Prints a value, optionally specifiying the position and colour """
         
         colour_index = Window._get_colour_pair(foreground, background)
         if colour_index is None:
             return
         attributes = curses.color_pair(colour_index)
+
+        if highlight:
+            attributes = attributes | curses.A_STANDOUT
 
         if position:
             x, y = position

@@ -8,9 +8,10 @@ from .log import debug as log_debug, event as log_event
 
 class Node:
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, engine):
         self.name = name
 
+        self._engine = engine
         self._children = {}
         self._callbacks = {}
         self._signals = {}
@@ -46,7 +47,7 @@ class Node:
         else:
             name = uuid.uuid4().hex()[:10]
 
-        node = node_type(name, **arguments)
+        node = node_type(name, self._engine, **arguments)
         node.enter()
         self._children[name] = node
 
@@ -55,18 +56,17 @@ class Node:
     def connect(self, signal: str, callback: callable):
         """ Connects a callback to one of this node's signals """
 
+        name = callback.__name__
         log_debug(f"connected '{name}' to '{signal}' in '{self.name}'")
 
         if signal not in self._callbacks:
             raise Exception(f"'{signal}' not registered in '{self.name}'")
         self._callbacks[signal].append(callback)
-
-        name = callback.__name__
     
     def emit(self, signal: str, **arguments):
         """ Emits a signal to connected nodes """
         
-        log_event(f"'{self.name}' emitted '{signal}'")
+        log_event(f"'{self.name}' emitted '{signal}' ({arguments})")
 
         if signal not in self._callbacks:
             raise Exception(f"'{signal}' not registered in '{self.name}'")
@@ -96,6 +96,9 @@ class Node:
             return self._children[name]
         else:
             return self._children[name].get_node(".".join(tokens[1:]))
+    
+    def get_engine(self):
+        return self._engine
 
     def input(self, event: Event):
         pass
