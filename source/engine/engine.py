@@ -1,96 +1,85 @@
 import time
 
 from .event import Event
-from .log import Log
+from .scene import Scene
 from .timer import Timer
 from .window import Window
+from .log import debug as log_debug
+
 
 class Engine:
-    FRAME_RATE = 24
 
     def __init__(self):
-        self.scenes = {}
-        self.scene = None
+        self._scenes = {}
+        self._scene = None
+        self._scene_name = None
 
-        self.log = None
+        self._running = False
+
         self.window = None
-
+    
     def load(self, name: str):
-        """ Loads a registered scene of a given name """
+        if name not in self._scenes:
+            message = f"scene '{name}' not registered"
+            log_error(message)
+            raise Exception(f"scene '{name}' not registered")
         
-        # Stop the current scene
-        if self.scene:
-            self.log.debug(f"quitting scene '{self.scene._name}'")
-            self.scene.exit()
-            self.scene = None
-
-        # Check the scene specified exists
-        if name not in self.scenes:
-            raise Exception(f"no such scene '{name}'")
+        # Quit old scene, if applicable
+        if self._scene:
+            self._scene.exit()
+            self._scene = None
+            log_debug(f"quit scene '{self._scene_name}'")
         
-        # Load the new scene
-        self.log.debug(f"loading scene '{name}'")
-        scene = self.scenes[name]
-        scene.enter()
-        self.scene = scene
+        # Load new scene
+        self._scene = self._scenes[name]()
+        self._scene_name = name
+        self._scene.enter()
+        log_debug(f"loaded scene '{name}'")
     
     def quit(self):
-        """ Stops the engine """
 
-        # Quit the current scene (if applicable), and exit
-        if self.scene:
-            self.log.debug(f"quitting scene '{self.scene._name}'")
-            self.scene.exit()
+        # Quit current scene, if applicable
+        if self._scene:
+            self._scene.exit()
+            self._scene = None
+            log_debug(f"quit scene '{self._scene_name}'")
         
-        self.log.debug("quitting")
-        self.running = False
+        self._running = False
 
-    def register(self, scene_type: type, name: str):
-        """ Registers a scene with a given name """
+    def start(self, arguments: list, root: str):
 
-        # Check name is unique
-        if name in self.scenes:
-            raise Exception(f"scene '{name}' already registered")
-        
-        # Create scene
-        scene = scene_type(name, self)
-        self.scenes[name] = scene
+        timer = Timer()
+        frame_period = 1 / 16
+        timer.start(frame_period)
 
-    def start(self, root: str):
-        """ Starts the main loop """
+        with Window() as self.window:
 
-        with Window() as window, Log() as log:
-            self.window = window
-            self.log = log
+            self._running = True
 
-            # Create a timer; used to refresh window every 1/8s
-            timer = Timer()
-            timer_period = 1 / Engine.FRAME_RATE
-            timer.start(timer_period)
-
-            # Load root scene
             self.load(root)
+            
+            while self._running:
+                
+                self.window.clear()
+                self._scene.draw(self.window)
+                self.window.update()
 
-            # Main loop
-            self.running = True
-            while self.running:
-
-                # Poll events
-                while event := window.poll():
-                    if event.type == Event.TYPE_QUIT:
+                while event := self.window.poll():
+                    log_debug(f"event: {event}")
+                    if event.type == "quit":
                         self.quit()
+                        break
                     else:
-                        self.scene.input(event)
-                        self.log.debug(f"event: {event}")
+                        self._scene._input(event)
 
-                # Refresh window
-                window.clear()
-                self.scene.draw(window)
-                window.update()
-
-                # Cap frame rate
                 if not timer.finished():
                     time.sleep(timer.delta())
-                timer.start(timer_period)
+                    timer.start(frame_period)
 
+    
+    def register(self, scene_type: Scene, name: str):
+        if name in self._scenes:
+            raise Exception(f"scene '{name}' already registered")
 
+        self._scenes[name] = scene_type
+        

@@ -1,10 +1,10 @@
-from engine import Engine, Scene, Window
+from engine import Scene, Window
 
 
 class MainMenu(Scene):
 
-    def __init__(self, name: str, engine: Engine):
-        super().__init__(name, engine)
-
-    def draw(self, window: Window) -> None:
+    def __init__(self):
+        pass
+    
+    def draw(self, window: Window):
         window.print("hello world")

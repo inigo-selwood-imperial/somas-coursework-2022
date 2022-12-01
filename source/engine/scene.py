@@ -1,30 +1,16 @@
-from .event import Event
-from .engine import Engine
+from .node import Node
 from .window import Window
 
 
-class Scene:
+class Scene(Node):
 
-    def __init__(self, name: str, engine: Engine):
-        self._name = name
-        self._engine = engine
+    def __init__(self):
+        super().__init__()
 
-    def draw(self, window: Window) -> None:
-        """ Called before the window refreshes """
-        pass
+    def _draw(self, window: Window):
+        for child in self._children:
+            child._draw(window)
+        self.draw(window)
 
-    def get_engine() -> Engine:
-        """ Fetches the game engine object """
-        return self._engine
-
-    def enter(self) -> None:
-        """ Called when the scene is added to the tree """
-        pass
-
-    def exit(self) -> None:
-        """ Called when a scene is freed """
-        pass
-
-    def input(self, event: Event) -> None:
-        """ Called when an event occurs """
+    def draw(self):
         pass

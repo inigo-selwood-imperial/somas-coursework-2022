@@ -1,42 +1,41 @@
 import datetime
 import os
+import atexit
 
 
-class Log:
+_log_file = None
 
-    def __enter__(self):
+def get_log_file():
+    global _log_file
+
+    def close_log_file():
+        if _log_file is not None:
+            _log_file.close()
+
+    if _log_file is None:
+
+        # Evaluate root
         root = os.path.abspath(__file__)
-        for _ in range(2):
+        for _ in range(3):
             root = os.path.dirname(root)
-        
+
+        # Check log folder exists
         log_base = os.path.join(root, "logs")
         if not os.path.exists(log_base):
             os.mkdir(log_base)
         
+        # Evaluate log name
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-        path = os.path.join(log_base, f"log-{timestamp}.txt")
+        log_name = f"log-{timestamp}.txt"
+        path = os.path.join(log_base, log_name)
 
-        self.file = None
-        self.file = open(path, "w")
-
-        return self
+        # Open file, and register for closing at exit
+        _log_file = open(path, "w")
+        atexit.register(close_log_file)
     
-    def __exit__(self, type, value, traceback):
-        if self.file:
-            self.file.close()
-        
-    def _print(self, level: str, value: any):
-        timestamp = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
-        self.file.write(f"[{timestamp}] {level} {value}\n")
-        
-    def alert(self, value: any):
-        self._print("ALERT", value)
-        
-    def debug(self, value: any):
-        self._print("DEBUG", value)
-        
-    def error(self, value: any):
-        self._print("ERROR", value)
-        
-    def fatal(self, value: any):
-        self._print("FATAL", value)
+    return _log_file
+
+
+def debug(value: any):
+    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+    get_log_file().write(f"{timestamp} (DEBUG) {value}\n")

@@ -4,6 +4,7 @@ import signal
 import sys
 
 from .event import *
+from .log import debug as log_debug
 
 
 class Window:
@@ -42,6 +43,7 @@ class Window:
         self._size = self.get_size()
         self._last_ticks = time.time()
 
+        log_debug("initialised curses")
         return self
 
     def __exit__(self, type, value, traceback):
@@ -57,6 +59,7 @@ class Window:
         curses.echo()
 
         curses.endwin()
+        log_debug("exited curses")
     
     @staticmethod
     def _get_colour_pair(foreground: int, background: int) -> int:
@@ -79,25 +82,9 @@ class Window:
             Window._pairs[hash] = index
         
         return Window._pairs[hash]
-    
-    def draw_box(self, size: tuple, origin: tuple = (0, 0)):
-        x, y = origin
-        width, height = size
-
-        border_horizontal = "─" * (width - 2)
-        self.print(border_horizontal, (x + 1, y))
-        self.print(border_horizontal, (x + 1, y + height - 1))
-
-        for row in range(1, height - 1):
-            self.print("│", (x, y + row))
-            self.print("│", (x + width - 1, y + row))
-        
-        self.print("╭", (x, y))
-        self.print("╰", (x, y + height - 1))
-        self.print("╮", (x + width - 1, y))
-        self.print("╯", (x + width - 1, y + height - 1))
 
     def clear(self):
+        """ Clears the window """
         self._handle.clear()
 
     def get_size(self) -> tuple:
@@ -165,4 +152,6 @@ class Window:
         return None
     
     def update(self):
+        """ Updates the screen """
+        
         self._handle.refresh()
