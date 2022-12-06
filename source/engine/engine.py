@@ -32,6 +32,8 @@ class Engine:
         # Load new scene
         log_debug(f"loading scene '{name}'")
         self._scene = self._scenes[name](name, self)
+        self._scene._engine = self
+        self._scene.name = name
         self._scene.enter()
     
     def quit(self):
@@ -79,6 +81,5 @@ class Engine:
     def register(self, scene_type: Node, name: str):
         if name in self._scenes:
             raise Exception(f"scene '{name}' already registered")
-
         self._scenes[name] = scene_type
         

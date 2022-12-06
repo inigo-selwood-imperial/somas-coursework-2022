@@ -8,10 +8,10 @@ from .log import debug as log_debug, event as log_event
 
 class Node:
 
-    def __init__(self, name: str, engine):
-        self.name = name
+    def __init__(self):
+        self.name = None
 
-        self._engine = engine
+        self._engine = None
         self._children = {}
         self._callbacks = {}
         self._signals = {}
@@ -47,7 +47,9 @@ class Node:
         else:
             name = uuid.uuid4().hex()[:10]
 
-        node = node_type(name, self._engine, **arguments)
+        node = node_type(**arguments)
+        node._engine = self._engine
+        node.name = name
         node.enter()
         self._children[name] = node
 
