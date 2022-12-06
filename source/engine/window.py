@@ -89,7 +89,7 @@ class Window:
         """ Clears the window """
         self._handle.clear()
     
-    def draw_box(self, size: tuple, origin: tuple = (0, 0)):
+    def draw_box(self, size: list, origin: list = [0, 0]):
         width, height = size
         x, y = origin
 
