@@ -11,27 +11,27 @@ class Node:
     def __init__(self):
         self.name = None
 
-        self._engine = None
-        self._children = {}
-        self._callbacks = {}
-        self._signals = {}
+        self.engine = None
+        self.children = {}
+        self.callbacks = {}
+        self.signals = {}
 
     def _draw(self, window: Window):
-        for child in self._children.values():
+        for child in self.children.values():
             child._draw(window)
         self.draw(window)
     
     def _exit(self):
         """ Exits children, then self """
 
-        for child in self._children.values():
+        for child in self.children.values():
             child._exit()
         self.exit()
     
     def _input(self, event: Event):
         """ Propagates input to children, then self """
 
-        for child in self._children.values():
+        for child in self.children.values():
             child._input(event)
         self.input(event)
     
@@ -41,17 +41,17 @@ class Node:
         log_debug(f"adding node '{name}' to '{self.name}'")
 
         if name:
-            if name in self._children:
+            if name in self.children:
                 message = f"node '{self.name}' already has child '{name}'"
                 raise Exception(message)
         else:
-            name = uuid.uuid4().hex()[:10]
+            name = uuid.uuid4().hex[:10]
 
         node = node_type(**arguments)
-        node._engine = self._engine
+        node.engine = self.engine
         node.name = name
         node.enter()
-        self._children[name] = node
+        self.children[name] = node
 
         return node
     
@@ -61,18 +61,18 @@ class Node:
         name = callback.__name__
         log_debug(f"connected '{name}' to '{signal}' in '{self.name}'")
 
-        if signal not in self._callbacks:
+        if signal not in self.callbacks:
             raise Exception(f"'{signal}' not registered in '{self.name}'")
-        self._callbacks[signal].append(callback)
+        self.callbacks[signal].append(callback)
     
     def emit(self, signal: str, **arguments):
         """ Emits a signal to connected nodes """
         
         log_event(f"'{self.name}' emitted '{signal}' ({arguments})")
 
-        if signal not in self._callbacks:
+        if signal not in self.callbacks:
             raise Exception(f"'{signal}' not registered in '{self.name}'")
-        for callback in self._callbacks[signal]:
+        for callback in self.callbacks[signal]:
             callback(**arguments)
 
     def draw(self, window: Window):
@@ -90,17 +90,17 @@ class Node:
         # Get head token
         tokens = path.split(".")
         head = tokens[0]
-        if head not in self._children:
+        if head not in self.children:
             raise Exception(f"node '{self.name}' has no child '{head}'")
         
         # Propagate, or return
         if len(tokens) == 1:
-            return self._children[name]
+            return self.children[name]
         else:
-            return self._children[name].get_node(".".join(tokens[1:]))
+            return self.children[name].get_node(".".join(tokens[1:]))
     
-    def get_engine(self):
-        return self._engine
+    def getengine(self):
+        return self.engine
 
     def input(self, event: Event):
         pass
@@ -110,9 +110,9 @@ class Node:
 
         log_debug(f"'{self.name}' registered '{signal}'")
 
-        if signal in self._signals:
+        if signal in self.signals:
             raise Exception(f"signal '{signal}' already registered")
-        self._callbacks[signal] = []
+        self.callbacks[signal] = []
 
     
     def remove_child(self, name: str):
@@ -120,8 +120,8 @@ class Node:
 
         log_debug(f"'{self.name}' removing child '{name}'")
 
-        if name not in self._children:
+        if name not in self.children:
             raise Exception(f"node '{self.name}' has no child '{name}'")
         
         child._exit()
-        del self._children[name]
+        del self.children[name]

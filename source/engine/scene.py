@@ -7,7 +7,7 @@ class Scene(Node):
         super().__init__()
 
     def load(name: str):
-        self._engine.load(name)
+        self.engine.load(name)
     
     def quit():
-        self._engine.quit()
+        self.engine.quit()

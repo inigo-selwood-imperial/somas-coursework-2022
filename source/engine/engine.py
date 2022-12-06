@@ -10,41 +10,41 @@ from .window import Window
 class Engine:
 
     def __init__(self):
-        self._scenes = {}
-        self._scene = None
+        self.scenes = {}
+        self.scene = None
 
-        self._running = False
+        self.running = False
 
         self.window = None
     
     def load(self, name: str):
-        if name not in self._scenes:
+        if name not in self.scenes:
             message = f"scene '{name}' not registered"
             log_error(message)
             raise Exception(f"scene '{name}' not registered")
         
         # Quit old scene, if applicable
-        if self._scene:
-            log_debug(f"quitting scene '{self._scene.name}'")
-            self._scene._exit()
-            self._scene = None
+        if self.scene:
+            log_debug(f"quitting scene '{self.scene.name}'")
+            self.scene._exit()
+            self.scene = None
         
         # Load new scene
         log_debug(f"loading scene '{name}'")
-        self._scene = self._scenes[name](name, self)
-        self._scene._engine = self
-        self._scene.name = name
-        self._scene.enter()
+        self.scene = self.scenes[name]()
+        self.scene.engine = self
+        self.scene.name = name
+        self.scene.enter()
     
     def quit(self):
 
         # Quit current scene, if applicable
-        if self._scene:
-            log_debug(f"quitting scene '{self._scene.name}'")
-            self._scene._exit()
-            self._scene = None
+        if self.scene:
+            log_debug(f"quitting scene '{self.scene.name}'")
+            self.scene._exit()
+            self.scene = None
         
-        self._running = False
+        self.running = False
 
     def start(self, arguments: list, root: str):
 
@@ -54,14 +54,14 @@ class Engine:
 
         with Window() as self.window:
 
-            self._running = True
+            self.running = True
 
             self.load(root)
             
-            while self._running:
+            while self.running:
                 
                 self.window.clear()
-                self._scene._draw(self.window)
+                self.scene._draw(self.window)
 
                 if self.window.updates_available:
                     self.window.update()
@@ -72,14 +72,14 @@ class Engine:
                         self.quit()
                         break
                     else:
-                        self._scene._input(event)
+                        self.scene._input(event)
 
                 if not timer.finished():
                     time.sleep(timer.delta())
                     timer.start(frame_period)
     
     def register(self, scene_type: Node, name: str):
-        if name in self._scenes:
+        if name in self.scenes:
             raise Exception(f"scene '{name}' already registered")
-        self._scenes[name] = scene_type
+        self.scenes[name] = scene_type
         
