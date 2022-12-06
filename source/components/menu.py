@@ -18,6 +18,10 @@ class Menu(Node):
         self.options.append(text)
         self.width = max(self.width, len(text))
     
+    def set_title(self, title: str):
+        self.title = title
+        self.width = max(self.width, len(title))
+    
     def enter(self):
         self.register("selected")
     
@@ -42,3 +46,6 @@ class Menu(Node):
                     highlight=highlight)
             
             window.draw_box((self.width + 6, len(self.options) + 2))
+
+            if self.title:
+                window.print(f" {self.title} ", (2, 0))

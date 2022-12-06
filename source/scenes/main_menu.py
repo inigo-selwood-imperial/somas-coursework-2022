@@ -9,6 +9,8 @@ class MainMenu(Node):
     
     def enter(self):
         menu = self.add_child(Menu, "menu")
+        menu.set_title("main menu")
+        
         menu.add_option("play")
         menu.add_option("settings")
         menu.add_option("quit")
