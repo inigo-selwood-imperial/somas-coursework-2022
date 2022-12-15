@@ -26,14 +26,6 @@ class DDPGPeasant(Peasant):
             discount_gamma: float = 0.99,
             noise_deviation: float = 0.2):
         
-        stamina = level * np.random.uniform(0.25, 0.75)
-        health = level - stamina
-
-        attack = level * np.random.uniform(0.25, 0.75)
-        defence = level - attack
-    
-        super().__init__(stamina, health, attack, defence)
-        
         # DDPG stuff
         state_count = 9
         action_count = 2
@@ -64,8 +56,30 @@ class DDPGPeasant(Peasant):
         self.previous_state = None
         self.previous_action = None
 
-        self.previous_stamina = stamina
-        self.previous_health = health
+        self.previous_stamina = 0
+        self.previous_health = 0
+        self.previous_round = 0
+
+        self.reward_total = 0
+
+        # Peasant attributes
+        self.level = level
+        super().__init__(0, 0, 0, 0)
+
+        self.reset()
+
+    def reset(self):
+        self.previous_state = None
+        self.previous_action = None
+
+        self.stamina = self.level * np.random.uniform(0.25, 0.75)
+        self.health = self.level - self.stamina
+
+        self.attack = self.level * np.random.uniform(0.25, 0.75)
+        self.defence = self.level - self.attack
+
+        self.previous_stamina = self.stamina
+        self.previous_health = self.health
         self.previous_round = 0
 
         self.reward_total = 0
@@ -95,7 +109,13 @@ class DDPGPeasant(Peasant):
         return result
     
     def create_action_object(self, tensor: np.ndarray) -> Action:
-        return Action(0, 0)
+        stamina_use, action_ratio = tensor
+
+        stamina = self.stamina * 0.99 * stamina_use
+        attack = stamina * action_ratio
+        defence = stamina - attack
+
+        return Action(attack, defence)
     
     @tf.function
     def update(self,
@@ -160,36 +180,40 @@ class DDPGPeasant(Peasant):
 
     def action(self, state: State) -> Action:
         state_tensor = self.create_state_tensor(state)
+        assert not np.isnan(state_tensor.numpy()).any()
 
         # Sample action, with noise
         samples = tf.squeeze(self.actor.model(state_tensor)).numpy() 
         samples += self.noise_generator()
 
         # Create new action object from model
-        action_tensor = np.asarray([np.squeeze(np.clip(samples, 0.0, 1.0))])
+        action_tensor = np.asarray(np.squeeze(np.clip(samples, 0.0, 1.0)))
+        assert not np.isnan(action_tensor).any()
         action = self.create_action_object(action_tensor)
 
         # Calculate reward
-        reward = ((self.stamina - self.previous_stamina)
-                + (self.health - self.previous_health)
-                + int(state.round != self.previous_round) * 2)
+        reward = (int(self.stamina < self.previous_stamina) * -1
+                + int(self.health < self.previous_health) * -1
+                + int(state.round > self.previous_round))
         self.reward_total += reward
 
-        # Store experience
-        self.buffer.record(self.previous_state,
-                self.previous_action,
-                reward,
-                state_tensor.numpy())
-
         # Train
-        if self.previous_state is not None and self.buffer.pointer >= self.batch_size:
+        if self.previous_state is not None:
+            
+            # Store experience
+            self.buffer.record(self.previous_state,
+                    self.previous_action,
+                    reward,
+                    state_tensor.numpy())
 
-            # Learn
-            states, actions, rewards, new_states = \
-                    self.buffer.sample(self.batch_size)
-            self.update(states, actions, rewards, new_states)
-            self.update_target(self.target_actor, self.actor)
-            self.update_target(self.target_critic, self.critic)
+            if self.buffer.pointer >= self.batch_size:
+
+                # Learn
+                states, actions, rewards, new_states = \
+                        self.buffer.sample(self.batch_size)
+                self.update(states, actions, rewards, new_states)
+                self.update_target(self.target_actor, self.actor)
+                self.update_target(self.target_critic, self.critic)
 
         # Track state for updating reward
         self.previous_action = action_tensor

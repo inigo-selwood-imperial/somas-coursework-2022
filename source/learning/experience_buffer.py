@@ -26,6 +26,10 @@ class ExperienceBuffer:
         
         index = self.pointer % self.capacity
 
+        assert not np.isnan(state).any()
+        assert not np.isnan(action).any()
+        assert not np.isnan(new_state).any()
+
         self.state_memory[index] = state
         self.action_memory[index] = action
         self.reward_memory[index] = reward

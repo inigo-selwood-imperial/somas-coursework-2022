@@ -34,6 +34,8 @@ class Game:
 
         self.combatants = []
         self.abstainers = []
+
+        self.lifetimes = []
     
     def distribute_experience(self, peasants: list, experience: float):
 
@@ -97,6 +99,7 @@ class Game:
                     survivors.append(peasant)
                 else:
                     death_count += 1
+                    self.lifetimes.append(self.round)
         
         # If the monster died, nobody takes damage
         else:
@@ -140,6 +143,7 @@ class Game:
 
             "stamina-mean": average(survivor_staminas),
             "health-mean": average(survivor_healths),
+            "lifetime-mean": average(self.lifetimes) * 0.75
         }
 
         if not finished:
