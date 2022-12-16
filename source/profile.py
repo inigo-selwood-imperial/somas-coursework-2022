@@ -119,7 +119,6 @@ def profile_experience_factor(base_level: int = 10,
 
     plt.show()
 
-
 if __name__ == "__main__":
     assert len(sys.argv) == 2
 

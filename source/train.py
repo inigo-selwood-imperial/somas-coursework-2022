@@ -2,11 +2,15 @@ import sys
 import os; os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 import random
 import datetime
+import itertools
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib as matplt
 import tensorflow as tf
+import scipy
+import mpl_toolkits as plt_tlk
 
 from tensorflow import keras
 # import scipy
@@ -31,6 +35,7 @@ def _plot(statistics: pd.DataFrame):
 def _train(training_peasant: DDPGPeasant,
         peasants: list,
         epochs: int = 100,
+        verbose: bool = True,
         **arguments):
 
     peasants.append(training_peasant)
@@ -63,13 +68,14 @@ def _train(training_peasant: DDPGPeasant,
         ]
         statistics.append(results)
 
-        report = []
-        for result in results:
-            if isinstance(result, float):
-                report.append(f"{result:.3}")
-            else:
-                report.append(f"{result}")
-        print(", ".join(report))
+        if verbose:
+            report = []
+            for result in results:
+                if isinstance(result, float):
+                    report.append(f"{result:.3}")
+                else:
+                    report.append(f"{result}")
+            print(", ".join(report))
 
     headers = [
         "episode", 
@@ -107,7 +113,10 @@ def train_random_incremental(steps_per_epoch: int = 25,
                     train=False)
             peasants.append(intelligent_peasant)
 
-        new_statistics = _train(training_peasant, peasants, epochs=steps_per_epoch)
+        new_statistics = _train(training_peasant, 
+                peasants, 
+                epochs=steps_per_epoch,
+                reward_scheme="combat-uniform")
         if statistics is None:
             statistics = new_statistics
         else:
@@ -119,8 +128,45 @@ def train_random_incremental(steps_per_epoch: int = 25,
     training_peasant.save("resources/weights/intelligent-unrewarded")
 
 
-def train_cooperative():
-    pass
+def profile_cooperation(steps_per_epoch: int = 10):
+
+    results = []
+    for index in range(7):
+
+        statistics = []
+        for weight in range(0, 160, 20):
+            weight /= 100
+
+            training_peasant = DDPGPeasant(10, weight_file="resources/weights/random-unrewarded")
+            peasants = []
+            for _ in range(4):
+                peasants.append(RandomPeasant(10))
+
+            weights = [1] * 7
+            weights[index] = weight
+
+            simulation = _train(training_peasant,
+                    peasants,
+                    epochs=steps_per_epoch,
+                    reward_scheme="uniform",
+                    verbose=False,
+                    reward_weights=weights,
+                    monster_base_level=5,
+                    monster_level_factor=1.05)
+            lifetime = np.mean(simulation["average-lifespan"])
+
+            print(f"{index}, {weight}: {lifetime:.3}")
+            statistics.append([weight, lifetime])
+    
+        table = pd.DataFrame(statistics, columns=["weight", "lifetime"])
+        correlation = table["weight"].corr(table["lifetime"])
+        results.append([index, correlation])
+
+    table = pd.DataFrame(results, columns=["weight-index", "correlation"])
+    print(table)
+    table.plot.bar(x="weight-index", y="correlation")
+    plt.show()
+
 
 if __name__ == "__main__":
     assert len(sys.argv) == 2
@@ -134,5 +180,7 @@ if __name__ == "__main__":
         train_random()
     elif sys.argv[1] == "incremental":
         train_random_incremental()
+    elif sys.argv[1] == "cooperative":
+        profile_cooperation()
     else:
         raise ValueError(f"invalid train argument: {sys.argv[1]}")

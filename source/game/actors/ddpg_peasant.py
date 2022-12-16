@@ -68,8 +68,11 @@ class DDPGPeasant(Peasant):
         self.previous_stamina = 0
         self.previous_health = 0
         self.previous_round = 0
+        self.previous_turn = 0
+        self.previous_level = 0
 
         self.reward_total = 0
+        self.rewards = []
 
         # Peasant attributes
         self.level = level
@@ -91,6 +94,10 @@ class DDPGPeasant(Peasant):
         self.previous_health = self.health
         self.previous_round = 0
         self.previous_turn = 0
+        self.previous_level = (self.stamina 
+                + self.health 
+                + self.attack 
+                + self.defence)
 
         self.reward_total = 0
         self.rewards = []
@@ -208,6 +215,10 @@ class DDPGPeasant(Peasant):
                 + int(self.health < 1.0) * -2
                 + int(state.round > self.previous_round)
                 + int(state.turn > self.previous_turn))
+        # reward = (self.stamina 
+        #         + self.health 
+        #         + self.attack 
+        #         + self.defence) - self.previous_level
         self.reward_total += reward
         self.rewards.append(reward)
 
@@ -237,6 +248,10 @@ class DDPGPeasant(Peasant):
         self.previous_health = self.health
         self.previous_round = state.round
         self.previous_turn = state.turn
+        self.previous_level = (self.stamina 
+                + self.health 
+                + self.attack 
+                + self.defence)
 
         # Return result
         return action

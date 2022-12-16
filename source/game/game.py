@@ -58,8 +58,24 @@ class Game:
             for peasant in combatants:
                 peasant.grant_experience(experience / combatant_count)
         
+        # Rewards combatants in proportion to their contributions
+        # To-do: clean up
         elif self.reward_scheme == "socially-conscious":
-            pass
+            rewards = list(self.rewards.values())
+            minimum = min(rewards)
+            offset = -minimum if minimum < 0 else 0
+
+            total = sum([reward + offset for reward in rewards])
+
+            rewards = {}
+            for id, reward in self.rewards.items():
+                offset_reward = reward + offset
+                proportion = total / offset_reward if offset_reward else 0
+                rewards[id] = proportion * experience
+            
+            for peasant in self.cohort.peasants:
+                # reward = rewards[peasant.id] if peasant.id in rewards else 0
+                peasant.grant_experience(1)
 
         else:
             raise ValueError(f"invalid reward scheme: {self.reward_scheme}")
@@ -163,6 +179,8 @@ class Game:
 
             self.combatants = []
             self.abstainers = []
+
+            self.rewards = {}
 
             self.turn += 1
 
