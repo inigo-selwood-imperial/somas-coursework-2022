@@ -1,4 +1,4 @@
-# Self-Organizing Multi-Agent Systems Courswork 2022-2023
+# Self-Organizing Multi-Agent Systems Coursework 2022-2023
 
 This repository contains two things:
 
@@ -14,3 +14,16 @@ For more reading about the ML techniques used, see:
 
 - [Keras' page on DDPG](https://keras.io/examples/rl/ddpg_pendulum/)
 
+Here are some pretty figures obtained from the training process:
+
+### Choosing an Experience Reward Factor
+
+![Experience Factor Fitting](./resources/figures/experience-factor-fitting.png)
+
+### Selfish Actor Training Convergence
+
+![Unrewarded Training](./resources/figures/unrewarded-training.png)
+
+### Failed Multivariable Weight Analysis
+
+![Failed Analysis](./resources/figures/weight-multivariable-analysis.png)
