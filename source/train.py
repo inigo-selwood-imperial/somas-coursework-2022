@@ -128,6 +128,54 @@ def train_random_incremental(steps_per_epoch: int = 25,
     training_peasant.save("resources/weights/intelligent-unrewarded")
 
 
+def profile_multivariable(steps_per_epoch: int = 10):
+
+    statistics = []
+    for weight_early in range(0, 160, 20):
+        weight_early /= 100
+
+        for weight_generous in range(0, 160, 20):
+            weight_generous /= 100
+
+            training_peasant = DDPGPeasant(10, weight_file="resources/weights/random-unrewarded")
+            peasants = []
+            for _ in range(4):
+                peasants.append(RandomPeasant(10))
+
+            weights = [
+                1,
+                -0.5,
+                weight_early,
+                -0.25,
+                weight_generous,
+                1,
+                1,
+            ]
+
+            simulation = _train(training_peasant,
+                    peasants,
+                    epochs=steps_per_epoch,
+                    reward_scheme="socially-conscious",
+                    verbose=False,
+                    reward_weights=weights,
+                    monster_base_level=5,
+                    monster_level_factor=1.05)
+            lifetime = np.mean(simulation["average-lifespan"])
+
+            print(f"{weight_early}, {weight_generous}: {lifetime:.3}")
+            statistics.append([weight_early, weight_generous, lifetime])
+    
+    table = pd.DataFrame(statistics, 
+            columns=["weight-early", "weight-generous", "lifetime"])
+        
+    table.to_csv("output.csv")
+
+    figure = plt.figure()
+    axes = figure.add_subplot(projection='3d')
+    axes.plot_trisurf(table["weight-early"], table["weight-generous"], table["lifetime"], linewidth=2, antialiased=True)
+    plt.show()
+
+
 def profile_cooperation(steps_per_epoch: int = 10):
 
     results = []
@@ -182,5 +230,7 @@ if __name__ == "__main__":
         train_random_incremental()
     elif sys.argv[1] == "cooperative":
         profile_cooperation()
+    elif sys.argv[1] == "multivariable":
+        profile_multivariable()
     else:
         raise ValueError(f"invalid train argument: {sys.argv[1]}")

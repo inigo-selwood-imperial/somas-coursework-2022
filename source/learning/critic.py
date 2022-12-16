@@ -19,3 +19,6 @@ class Critic:
         outputs = keras.layers.Dense(1)(layer)
 
         self.model = keras.Model([state_input, action_input], outputs)
+
+        self.model.summary()
+        exit(0)
