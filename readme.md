@@ -1,29 +1,63 @@
 # Self-Organizing Multi-Agent Systems Coursework 2022-2023
 
-This repository contains two things:
+### Overview
 
-- A model of the "escape-the-pit" game
-- A simple DDPG neural network implementation
+This folder contains all the code and documentation for Team 7's (Inigo's) SOMAS coursework submission. It's a model of the "Escape the Pitt" game, trained on and participated in by a DDPG neural network intelligent agent.
 
-Files of interest: 
+To go to the game logic, see [game.py](./source/game/game). For details about the DDPG neural network, see [ddpg_peasant.py](./source/game/actors/ddpg_peasant.py). 
 
-- [The intelligent actor peasant](./source/game/actors/ddpg_peasant.py)
-- [The game function itself](./source/game/game.py)
+## Installation
 
-For more reading about the ML techniques used, see:
+Install Python 3.10
 
-- [Keras' page on DDPG](https://keras.io/examples/rl/ddpg_pendulum/)
+```bash
+> sudo apt-get install python
+```
 
-Here are some pretty figures obtained from the training process:
+Create a virtual environment
 
-### Choosing an Experience Reward Factor
+```bash
+> python3 -m venv .enviroment
+```
 
-![Experience Factor Fitting](./resources/figures/experience-factor-fitting.png)
+Activate that environment
 
-### Selfish Actor Training Convergence
+```bash
+> . .environment/bin/activate
+```
 
-![Unrewarded Training](./resources/figures/unrewarded-training.png)
+Install dependencies
 
-### Failed Multivariable Weight Analysis
+```bash
+> pip3 install -r requirements.txt
+```
 
-![Failed Analysis](./resources/figures/weight-multivariable-analysis.png)
+## Running the game
+
+What to the files do?
+
+- [main.py](./source/main.py) runs an instance of the game with the trained network agent
+- [train.py](./source/train.py) trains a neural network under given conditions, and saves the weights model
+
+#### How do I run them?
+
+Run the game
+
+```bash
+> python3 source/main.py 
+```
+
+Train a network with randomly acting team members
+
+```bash
+> python3 source/train.py random
+```
+
+Note that training will invoke TensorFlow, and will take a few seconds to begin printing results. At least, it does on my laptop.
+
+Test its performance
+
+```bash
+> python3 source/profile.py random
+```
+
