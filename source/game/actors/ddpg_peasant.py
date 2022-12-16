@@ -18,6 +18,8 @@ class DDPGPeasant(Peasant):
 
     def __init__(self, 
             level: float,
+            weight_file: str = None,
+            train: bool = True,
             batch_size: int = 32,
             memory_capacity: int = int(5e5),
             actor_alpha: float = 0.002,
@@ -36,8 +38,15 @@ class DDPGPeasant(Peasant):
         self.target_actor = Actor(state_count, action_count)
         self.target_critic = Critic(state_count, action_count)
 
-        self.target_actor.model.set_weights(self.actor.model.get_weights())
-        self.target_critic.model.set_weights(self.critic.model.get_weights())
+        self.train = train
+        if weight_file is None:
+            self.target_actor.model.set_weights(self.actor.model.get_weights())
+            self.target_critic.model.set_weights(self.critic.model.get_weights())
+        else:
+            self.actor.model.load_weights(f"{weight_file}-actor.h5")
+            self.critic.model.load_weights(f"{weight_file}-critic.h5")
+            self.target_actor.model.load_weights(f"{weight_file}-target-actor.h5")
+            self.target_critic.model.load_weights(f"{weight_file}-target-critic.h5")
 
         self.actor_optimizer = \
                 keras.optimizers.Adam(learning_rate=actor_alpha)
@@ -81,8 +90,10 @@ class DDPGPeasant(Peasant):
         self.previous_stamina = self.stamina
         self.previous_health = self.health
         self.previous_round = 0
+        self.previous_turn = 0
 
         self.reward_total = 0
+        self.rewards = []
     
     def create_state_tensor(self, state: State) -> tf.Tensor:
         """ Transforms a state object into a trainable tensor """
@@ -99,10 +110,10 @@ class DDPGPeasant(Peasant):
             abstainer_count / peasant_count,
             (combatant_count + abstainer_count) / peasant_count,
 
-            self.stamina,
-            self.health,
-            self.attack,
-            self.defence,
+            self.stamina / state.monster.health,
+            self.health / state.monster.attack,
+            self.attack / self.stamina,
+            self.defence / self.stamina,
         ]
         
         result = tf.expand_dims(tf.convert_to_tensor(result), 0)
@@ -193,9 +204,12 @@ class DDPGPeasant(Peasant):
 
         # Calculate reward
         reward = (int(self.stamina < self.previous_stamina) * -1
-                + int(self.health < self.previous_health) * -1
-                + int(state.round > self.previous_round))
+                + int(self.health < self.previous_health) * -2
+                + int(self.health < 1.0) * -2
+                + int(state.round > self.previous_round)
+                + int(state.turn > self.previous_turn))
         self.reward_total += reward
+        self.rewards.append(reward)
 
         # Train
         if self.previous_state is not None:
@@ -206,7 +220,7 @@ class DDPGPeasant(Peasant):
                     reward,
                     state_tensor.numpy())
 
-            if self.buffer.pointer >= self.batch_size:
+            if self.train and self.buffer.pointer >= self.batch_size:
 
                 # Learn
                 states, actions, rewards, new_states = \
@@ -222,6 +236,13 @@ class DDPGPeasant(Peasant):
         self.previous_stamina = self.stamina
         self.previous_health = self.health
         self.previous_round = state.round
+        self.previous_turn = state.turn
 
         # Return result
         return action
+
+    def save(self, name: str):
+        self.actor.model.save_weights(f"{name}-actor.h5")
+        self.critic.model.save_weights(f"{name}-critic.h5")
+        self.target_actor.model.save_weights(f"{name}-target-actor.h5")
+        self.target_critic.model.save_weights(f"{name}-target-critic.h5")

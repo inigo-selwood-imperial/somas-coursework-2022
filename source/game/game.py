@@ -1,3 +1,5 @@
+import yaml
+
 import numpy as np
 import pandas as pd
 
@@ -6,6 +8,7 @@ from game.state import State
 from game.action import Action
 
 from game.actors.monster import Monster
+from game.actors.peasant import Peasant
 
 
 class Game:
@@ -13,16 +16,18 @@ class Game:
     def __init__(self, 
             peasants: list, 
             reward_scheme: str = "uniform", 
-            experience_factor: float = 0.75,
-            round_limit: int = -1,
+            experience_factor: float = 0.9,
+            round_limit: int = 100,
             monster_base_level: int = 10,
-            monster_level_factor: int = 1.1):
+            monster_level_factor: int = 1.05,
+            reward_weights: tuple = [1] * 7):
         
         self.monster_base_level = monster_base_level
         self.monster_level_factor = monster_level_factor
 
         self.reward_scheme = reward_scheme
         self.experience_factor = experience_factor
+        self.weights = reward_weights
 
         self.round_limit = round_limit
         self.round = 0
@@ -36,6 +41,7 @@ class Game:
         self.abstainers = []
 
         self.lifetimes = []
+        self.rewards = {}
     
     def distribute_experience(self, peasants: list, experience: float):
 
@@ -51,6 +57,9 @@ class Game:
             combatant_count = len(combatants)
             for peasant in combatants:
                 peasant.grant_experience(experience / combatant_count)
+        
+        elif self.reward_scheme == "socially-conscious":
+            pass
 
         else:
             raise ValueError(f"invalid reward scheme: {self.reward_scheme}")
@@ -119,7 +128,7 @@ class Game:
         survivor_healths = [peasant.health for peasant in survivors]
 
         def average(values: list) -> float:
-            return sum(values) / len(values) if values else 0
+            return sum(values) / len(values) if values else self.round
         
         # Display some round information
         status = {
@@ -143,8 +152,10 @@ class Game:
 
             "stamina-mean": average(survivor_staminas),
             "health-mean": average(survivor_healths),
-            "lifetime-mean": average(self.lifetimes) * 0.75
+            "lifetime-mean": average(self.lifetimes) if self.lifetimes else self.round,
         }
+
+        # print(yaml.dump(status))
 
         if not finished:
             self.action = Action(0, 0)
@@ -196,6 +207,78 @@ class Game:
                 self.abstainers,
                 self.round,
                 self.turn)
+    
+    def evaluate_reward(self, peasant: Peasant, action: Action) -> float:
+        group_attack = self.action.attack
+        group_defence = self.action.defence
+
+        combined_attack = group_attack + action.attack
+        combined_defence = group_defence + action.defence
+
+        potential_attack = min(peasant.stamina, peasant.attack)
+        potential_defence = min(peasant.stamina, peasant.defence)
+
+        # True if the peasant's actions killed the monster or saved the group
+        # Note that killing the monster also saves the group
+        killed_monster = (self.action.attack < self.monster.health 
+                and combined_attack >= self.monster.health)
+        saved_group = (killed_monster
+                or (self.monster.attack > self.action.defence 
+                    and combined_defence >= self.monster.attack))
+        
+        # True if the monster is already dead, or the group already saved
+        monster_killed = group_attack >= self.monster.health
+        group_saved = monster_killed or self.monster.attack <= group_defence
+
+        # True if the player is capable of killing the monster
+        monster_killable = not monster_killed and (self.monster.health <= 
+                self.action.attack + potential_attack)
+        group_saveable = not group_saved and (self.monster.attack <= 
+                self.action.defence + potential_defence)
+
+        acted = action.attack or action.defence
+
+        group_size = len(self.cohort.peasants)
+
+        position = len(self.combatants) + len(self.abstainers)
+        completion_percentage = group_size / position if position else 0
+        
+        # True if the monster is stronger than the peasant by a margin
+        health_low = self.monster.health * 0.5 >= peasant.health
+        stamina_low = self.monster.attack * 0.5 >= peasant.stamina
+
+        # Rewarded attributes
+        weak = health_low or stamina_low
+        heroic = killed_monster or saved_group
+        early = acted and completion_percentage < 1 / group_size
+        brave = acted and (health_low or stamina_low) 
+        generous = (not monster_killed 
+                and not group_saved 
+                and (action.attack + action.defence) >= 0.5 * peasant.stamina)
+    
+        # Penalized attributes
+        selfish = ((not monster_killed and monster_killable)
+                or (not group_saved and group_saveable))
+        foolish = ((action.attack and monster_killed)
+                or (action.defence and group_saved))
+
+        criteria = [
+            weak,
+            heroic,
+            early,
+            brave,
+            generous,
+
+            -int(selfish),
+            -int(foolish),
+        ]
+        
+        # Weight attributes and sum result
+        assert len(self.weights) == len(criteria), "weight dimensions invalid"
+        pairs = zip(criteria, self.weights)
+        weighted_criteria = [weight * criteria for (weight, criteria) in pairs]
+        
+        return sum(weighted_criteria)
 
     def step(self) -> tuple:
 
@@ -204,6 +287,10 @@ class Game:
 
         # Get their action
         action = peasant.action(self.state())
+
+        # Evaluate experience reward
+        reward = self.evaluate_reward(peasant, action)
+        self.rewards[peasant.id] = reward
 
         self.action.attack += action.attack
         self.action.defence += action.defence

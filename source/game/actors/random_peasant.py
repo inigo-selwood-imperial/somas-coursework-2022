@@ -9,13 +9,9 @@ from game.state import State
 class RandomPeasant(Peasant):
 
     def __init__(self, level: float):
-        stamina = level * np.random.uniform(0.25, 0.75)
-        health = level - stamina
-
-        attack = level * np.random.uniform(0.25, 0.75)
-        defence = level - attack
-    
-        super().__init__(stamina, health, attack, defence)
+        super().__init__(0, 0, 0, 0)
+        self.level = level
+        self.reset()
 
     def action(self, state: State) -> Action:
         attack = 0
@@ -35,3 +31,10 @@ class RandomPeasant(Peasant):
             defence = defence * (self.stamina / stamina_needed)
 
         return Action(attack, defence)
+
+    def reset(self):
+        self.stamina = self.level * np.random.uniform(0.25, 0.75)
+        self.health = self.level - self.stamina
+
+        self.attack = self.level * np.random.uniform(0.25, 0.75)
+        self.defence = self.level - self.attack

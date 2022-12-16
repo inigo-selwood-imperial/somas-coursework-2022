@@ -25,18 +25,20 @@ class Peasant:
         raise NotImplementedError()
     
     def grant_experience(self, experience: float):
+        """ Distribute the experience evenly, to achieve a ratio of 
+        stamina := 2 * (attack + defence)
+        where attack/defence ~= 1
+        """
 
-        # Try to maintain stamina to fully attack/defend
-        stamina_boost = 0
-        if self.stamina < self.attack + self.defence:
-            defecit = (self.attack + self.defence) - self.stamina
-            stamina_boost = min(defecit, experience)
+        if (self.attack + self.defence) * 2 < self.stamina:
+            defecit = self.stamina - 2 * (self.attack + self.defence)
+            delta = min(experience, defecit)
+            experience -= delta
+
+            ratio = self.attack / self.defence
+            self.attack += delta * ratio
+            self.defence += delta * (1 - ratio)
         
-        # Distribute the remaining experience randomly between attack/defence
-        experience_left = experience - stamina_boost
-        attack_boost = experience_left * np.random.uniform()
-        defence_boost = experience_left - attack_boost
-
-        self.stamina += stamina_boost
-        self.attack += attack_boost
-        self.defence += defence_boost
+        self.stamina += experience * (2 / 3)
+        self.attack += experience * (1 / 6)
+        self.defence += experience * (1 / 6)
